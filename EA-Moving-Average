@@ -21,6 +21,8 @@ int slowHandle;
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
 int OnInit(){
+
+   // check user input
         
    if(InpFastPeriod <= 0){ 
       Alert("fast period <= 0");
@@ -34,9 +36,15 @@ int OnInit(){
         Alert("fast period >= Slow Period");
         return INIT_PARAMETERS_INCORRECT;
         
-      }    
+      }  
       
-      fastHandle = iMA
+     //CREATING A HANDLE
+      
+     fastHandle = iMA(_Symbol.PERIOD_CURRUNT,InpFastPeriod,0,MODE_EMA,PRICE_CLOSE);
+     if(fastHandle == INVALID_HANDLE){
+         Alert("failed to create fast Handle");
+         return INT_FAILED;
+}
       
    return(INIT_SUCCEEDED);
  }
