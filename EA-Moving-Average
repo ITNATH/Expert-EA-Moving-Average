@@ -2,6 +2,12 @@
 #property link      "https://www.mql5.com"
 #property version   "1.00"
 
+//+------------------------------------------------------------------+
+//| Expert initialization function                                   |
+//+-----------------------------------------------------------
+#include <Trade\Trade.mqh>
+
+
 
 //---------------------------------------------------------------------+
 //|  INPUT VARIABLE                                  |
@@ -16,55 +22,98 @@ input int InpSlowPeriod = 21;  //slow period
 
 int fastHandle;
 int slowHandle;
+double fastBuffer[];  //store array moving average for he 1 &2 value
+double slowBuffer[];
+CTrade trade;
+ 
 
 //+------------------------------------------------------------------+
-//| Expert initialization function                                   |
+//| Expert initialization function ONINIT TO RECIEVE INDICATOR VALUES                                 |
 //+------------------------------------------------------------------+
+
 int OnInit(){
 
-   // check user input
+      // check user input
         
    if(InpFastPeriod <= 0){ 
-      Alert("fast period <= 0");
+       Alert("fast period <= 0");
        return INIT_PARAMETERS_INCORRECT;
+       
       }    
-      if(InpSlowPeriod <= 0){ 
+    if(InpSlowPeriod <= 0){ 
        Alert("Slow Period <= 0");
        return INIT_PARAMETERS_INCORRECT;
+       
        }
-      if(InpFastPeriod >= InpSlowPeriod){ 
+    if(InpFastPeriod >= InpSlowPeriod){ 
         Alert("fast period >= Slow Period");
         return INIT_PARAMETERS_INCORRECT;
         
-      }  
+      }    
+    //CREATING A HANDLE
       
-     //CREATING A HANDLE
-      
-     fastHandle = iMA(_Symbol.PERIOD_CURRUNT,InpFastPeriod,0,MODE_EMA,PRICE_CLOSE);
-     if(fastHandle == INVALID_HANDLE){
-         Alert("failed to create fast Handle");
-         return INT_FAILED;
+   fastHandle = iMA(_Symbol,PERIOD_CURRENT,InpFastPeriod,0,MODE_EMA,PRICE_CLOSE);
+      if(fastHandle == INVALID_HANDLE){
+        Alert("failed to create fast Handle");
+        return INIT_FAILED;  
 }
-      
+
+  slowHandle = iMA(_Symbol,PERIOD_CURRENT,InpSlowPeriod,0,MODE_EMA,PRICE_CLOSE);
+     if(slowHandle == INVALID_HANDLE){
+        Alert("failed to create slow Handle");
+        return INIT_FAILED;  
+}
+
    return(INIT_SUCCEEDED);
  }
   
 //+------------------------------------------------------------------+
-//| Expert deinitialization function                                 |
+//|Expert deinitialization function OnDeinit TO RECIEVE INDICATOR VALUES                                 |
 //+------------------------------------------------------------------+
 
-void OnDeinit(const int reason)
-  {
- 
-   
-  }
-//+------------------------------------------------------------------+
-//| Expert tick function                                             |
-//+------------------------------------------------------------------+
+void OnDeinit(const int reason){
 
-void OnTick()
-  {
- 
+  if(fastHandle != INVALID_HANDLE){IndicatorRelease(fastHandle);}
+  if(slowHandle != INVALID_HANDLE){IndicatorRelease(slowHandle);}
    
-  }
-  
+ }
+//+------------------------------------------------------------------+
+//| Expert tick function IT'S CALLED WHEN PRICE CHANGE                                             |
+//+------------------------------------------------------------------+
+void OnTick() { 
+
+      // Get indicator values
+
+    int values = CopyBuffer(fastHandle,0,0,2,fastBuffer);
+       if (values != 2){
+         Print("Not enough data for fast moving average");
+         return;
+     }
+    values = CopyBuffer(slowHandle,0,0,2,slowBuffer);
+       
+     if (values != 2){
+         Print("Not enough data for slow moving average");
+         return;     
+
+    }
+     
+     
+      Comment("fast[0]:",fastBuffer[0],"\n",
+              "fast[1]:",fastBuffer[1],"\n",
+              "slow[0]:",slowBuffer[0],"\n",
+              "slow[1]:",slowBuffer[1]);
+             
+
+     //check for cross buy
+     
+   if(fastBuffer[1] <= slowBuffer[0]  && fastBuffer[0] > slowBuffer[0]);{
+   
+      double ask = SymbolInfoDouble(_Symbol,SYMBOL_ASK);
+      
+      trade.PositionOpen(_Symbol,ORDER_TYPE_BUY,1.0,ask,0,0,"CROSS EA");
+      
+      }
+
+    
+             
+ }
