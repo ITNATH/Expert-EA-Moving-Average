@@ -14,6 +14,8 @@
 //+------------------------------------------------------------------+
 input int InpFastPeriod = 14;  //fast period
 input int InpSlowPeriod = 21;  //slow period
+input int InpStoploss   = 100;  //stop loss 
+input int InpTakeprofit = 200;  //Take Profit
 
 
 //---------------------------------------------------------------------+
@@ -24,6 +26,8 @@ int fastHandle;
 int slowHandle;
 double fastBuffer[];  //store array moving average for he 1 &2 value
 double slowBuffer[];
+datetime openTimeBuy = 0;
+datetime openTimesell = 0;
 CTrade trade;
  
 
@@ -49,7 +53,19 @@ int OnInit(){
         Alert("fast period >= Slow Period");
         return INIT_PARAMETERS_INCORRECT;
         
+        }
+    if(InpStoploss <= 0){ 
+       Alert("stop loss <= 0");
+       return INIT_PARAMETERS_INCORRECT;
+       }
+       
+    if(InpTakeprofit <= 0){ 
+       Alert("take profit <= 0");
+       return INIT_PARAMETERS_INCORRECT;
+      
+        
       }    
+      
     //CREATING A HANDLE
       
    fastHandle = iMA(_Symbol,PERIOD_CURRENT,InpFastPeriod,0,MODE_EMA,PRICE_CLOSE);
@@ -106,11 +122,27 @@ void OnTick() {
 
      //check for cross buy
      
-   if(fastBuffer[1] <= slowBuffer[0]  && fastBuffer[0] > slowBuffer[0]);{
+   if(fastBuffer[1] <= slowBuffer[1] && fastBuffer[0] > slowBuffer[0] && openTimeBuy != iTime(_Symbol,PERIOD_CURRENT,0)){
    
+      openTimeBuy = iTime(_Symbol,PERIOD_CURRENT,0);
       double ask = SymbolInfoDouble(_Symbol,SYMBOL_ASK);
+      double sl = ask - InpStoploss * SymbolInfoDouble(_Symbol,SYMBOL_POINT);
+      double tp = ask - InpTakeprofit * SymbolInfoDouble(_Symbol,SYMBOL_POINT);
       
-      trade.PositionOpen(_Symbol,ORDER_TYPE_BUY,1.0,ask,0,0,"CROSS EA");
+      trade.PositionOpen(_Symbol,ORDER_TYPE_BUY,1.0,ask,sl,tp,"CROSS EA");
+      
+      }
+      
+      //check for cross sell
+     
+   if(fastBuffer[1] >= slowBuffer[1] && fastBuffer[0] < slowBuffer[0] && openTimesell != iTime(_Symbol,PERIOD_CURRENT,0)){
+   
+      openTimesell = iTime(_Symbol,PERIOD_CURRENT,0);
+      double bid = SymbolInfoDouble(_Symbol,SYMBOL_BID);
+      double sl = bid + InpStoploss * SymbolInfoDouble(_Symbol,SYMBOL_POINT);
+      double tp = bid - InpTakeprofit * SymbolInfoDouble(_Symbol,SYMBOL_POINT);
+      
+      trade.PositionOpen(_Symbol,ORDER_TYPE_SELL,1.0,bid,sl,tp,"CROSS EA");
       
       }
 
